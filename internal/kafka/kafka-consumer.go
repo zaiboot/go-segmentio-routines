@@ -2,59 +2,57 @@ package kafka
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"log"
-	"strings"
 	"sync"
 
 	"zaiboot/segmentIO.tests/internal/configs"
 
-	"github.com/IBM/sarama"
+	segmentio "github.com/segmentio/kafka-go"
+
 	"github.com/rs/zerolog"
 )
 
+func getKafkaReader(kafkaURL, topic, groupID string) *segmentio.Reader {
+	return segmentio.NewReader(segmentio.ReaderConfig{
+		Brokers:  []string{kafkaURL},
+		GroupID:  groupID,
+		Topic:    topic,
+		MinBytes: 10e3, // 10KB
+		MaxBytes: 10e6, // 10MB
+	})
+}
 func Consume(wg *sync.WaitGroup, l *zerolog.Logger, ctx context.Context, cancel context.CancelFunc, kc configs.KafkaConfig,
-	f func(message string) error) {
-	defer wg.Done()
+	f func(message string, l *zerolog.Logger) error) {
 	groupdId := fmt.Sprintf("%s-%d", kc.GroupId, kc.Partition)
 	subLogger := l.With().
 		Str("bootstrap.servers", kc.Broker).
 		Str("topic", kc.Topic).
 		Str("groupdId", groupdId).
 		Int("partition", kc.Partition).Logger()
-	// custom wpn consumer class to handle all
-	consumer := Consumer{
-		ready: make(chan bool),
-	}
+	subLogger.Info().Msg("Start")
+	reader := getKafkaReader(kc.Broker, kc.Topic, groupdId)
+	defer reader.Close()
 
-	saramaConfig := sarama.Config{}
-	cg, err := sarama.NewConsumerGroup(strings.Split(kc.Broker, ","), groupdId, &saramaConfig)
-	if err != nil {
-		subLogger.Error().Err(err).Msg("Unable to consume partition")
-		cancel()
-		return
-	}
-	<-consumer.ready // Await till the consumer has been set up, can this be added
-	for run := true; run; {
-
-		if err := cg.Consume(ctx, strings.Split(kc.Topic, ","), &consumer); err != nil {
-			if errors.Is(err, sarama.ErrClosedConsumerGroup) {
-				return
-			}
-			log.Panicf("Error from consumer: %v", err)
+	for {
+		msg, err := reader.ReadMessage(ctx)
+		if err != nil {
+			subLogger.Err(err).
+				Msg("Unable to read a message")
 		}
-		// check if context was cancelled, signaling that the consumer should stop
-		if ctx.Err() != nil {
+		err = f(string(msg.Value), &subLogger)
+		if err != nil {
+			subLogger.Fatal().
+				Str("error", err.Error()).
+				Msg("Unable to process the message")
+
 			return
 		}
+		err = ctx.Err()
+		if err != nil {
+			subLogger.Fatal().
+				Str("error", err.Error()).
+				Msg("Closed due to other process request")
+		}
 
 	}
-
-	err = cg.Close()
-	if err != nil {
-		subLogger.Err(err).Msg("Unable to close the consumer")
-	}
-
-	l.Debug().Msg("Partition Consumer terminated")
 }

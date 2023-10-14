@@ -26,16 +26,6 @@ func main() {
 	go infra.StartReadynessWebServer(config, &l, &wg, ctx, cancel)
 	wg.Add(1)
 	go infra.MonitorProcesses(&l, &wg, ctx, cancel)
-	// kc, err := config.GetKafkaConfig()
-	// if err != nil {
-	// 	l.Fatal().Msg("Error getting kafka config")
-	// }
-
-	// for _, k := range kc {
-	// 	wg.Add(1)
-	// 	go kafka.Consume(&wg, &l, ctx, cancel, k, custom_logic.DoWork)
-	// }
-
 	wg.Wait()
 	close(message)
 }
