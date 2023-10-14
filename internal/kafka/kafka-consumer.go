@@ -23,6 +23,7 @@ func getKafkaReader(kafkaURL, topic, groupID string) *segmentio.Reader {
 }
 func Consume(wg *sync.WaitGroup, l *zerolog.Logger, ctx context.Context, cancel context.CancelFunc, kc configs.KafkaConfig,
 	f func(message string, l *zerolog.Logger) error) {
+	defer wg.Done()
 	groupdId := fmt.Sprintf("%s-%d", kc.GroupId, kc.Partition)
 	subLogger := l.With().
 		Str("bootstrap.servers", kc.Broker).
@@ -52,6 +53,11 @@ func Consume(wg *sync.WaitGroup, l *zerolog.Logger, ctx context.Context, cancel 
 			subLogger.Fatal().
 				Str("error", err.Error()).
 				Msg("Closed due to other process request")
+		}
+		err = reader.CommitMessages(ctx, msg)
+		if err != nil {
+			subLogger.Err(err).
+				Msg("Unable to commit")
 		}
 
 	}
