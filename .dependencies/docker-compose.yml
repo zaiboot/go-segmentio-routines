@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+
+    zookeeper:
+      image: 'bitnami/zookeeper:latest'
+      platform: 'linux/amd64'
+      hostname: zookeeper
+      environment:
+        - ALLOW_ANONYMOUS_LOGIN=yes
+        - ZOOKEEPER_CLIENT_PORT=2181
+        - ZOOKEEPER_TICK_TIME=2000
+
+    kafka:
+      hostname: kafka
+      image: 'bitnami/kafka:3.4.0-debian-11-r20'
+      ports:
+        - '9093:9093'
+      environment:
+        - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+        - ALLOW_PLAINTEXT_LISTENER=yes
+        - KAFKA_BROKER_ID=1
+        - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
+        - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:9093
+        - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka:9092,EXTERNAL://localhost:9093
+        - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
+        - KAFKA_LOG_RETENTION_HOURS=1
+        - KAFKA_TRANSACTION_MAX_TIMEOUT_MS=900000
+      depends_on:
+        - zookeeper
+
