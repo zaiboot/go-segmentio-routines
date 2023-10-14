@@ -5,9 +5,7 @@ import (
 	"os"
 	"sync"
 	"zaiboot/segmentIO.tests/internal/configs"
-	"zaiboot/segmentIO.tests/internal/custom_logic"
 	"zaiboot/segmentIO.tests/internal/infra"
-	"zaiboot/segmentIO.tests/internal/kafka"
 	"zaiboot/segmentIO.tests/internal/logger"
 )
 
@@ -28,21 +26,16 @@ func main() {
 	go infra.StartReadynessWebServer(config, &l, &wg, ctx, cancel)
 	wg.Add(1)
 	go infra.MonitorProcesses(&l, &wg, ctx, cancel)
-	kc, err := config.GetKafkaConfig()
-	if err != nil {
-		l.Fatal().Msg("Error getting kafka config")
-	}
-	c, err := kafka.BuildConsumer(kc[0], &l)
-	if err != nil {
-		l.Fatal().Msg("Unable to create consumer")
-	}
+	// kc, err := config.GetKafkaConfig()
+	// if err != nil {
+	// 	l.Fatal().Msg("Error getting kafka config")
+	// }
 
-	for _, k := range kc {
-		wg.Add(1)
-		go kafka.Consume(&wg, c, &l, ctx, cancel, k, custom_logic.DoWork)
-	}
+	// for _, k := range kc {
+	// 	wg.Add(1)
+	// 	go kafka.Consume(&wg, &l, ctx, cancel, k, custom_logic.DoWork)
+	// }
 
 	wg.Wait()
-	c.Close()
 	close(message)
 }

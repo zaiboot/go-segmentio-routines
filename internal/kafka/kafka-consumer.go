@@ -7,7 +7,6 @@ import (
 	"log"
 	"strings"
 	"sync"
-	"time"
 
 	"zaiboot/segmentIO.tests/internal/configs"
 
@@ -15,28 +14,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func BuildConsumer(kc configs.KafkaConfig, l *zerolog.Logger) (sarama.Consumer, error) {
-
-	config := sarama.NewConfig()
-	config.ClientID = "go-kafka-consumer"
-	config.Consumer.Return.Errors = true
-	config.Consumer.Offsets.AutoCommit.Enable = true
-	//TODO: Use a setting
-	config.Consumer.Offsets.AutoCommit.Interval = 1 * time.Second
-
-	brokers := strings.Split(kc.Broker, ",")
-
-	// Create new consumer
-	c, err := sarama.NewConsumer(brokers, config)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return c, nil
-}
-
-func Consume(wg *sync.WaitGroup, c sarama.Consumer, l *zerolog.Logger, ctx context.Context, cancel context.CancelFunc, kc configs.KafkaConfig,
+func Consume(wg *sync.WaitGroup, l *zerolog.Logger, ctx context.Context, cancel context.CancelFunc, kc configs.KafkaConfig,
 	f func(message string) error) {
 	defer wg.Done()
 	groupdId := fmt.Sprintf("%s-%d", kc.GroupId, kc.Partition)

@@ -11,6 +11,16 @@ services:
         - ZOOKEEPER_CLIENT_PORT=2181
         - ZOOKEEPER_TICK_TIME=2000
 
+    kcat:
+      hostname: kcat
+      image: edenhill/kcat:1.7.1
+      volumes:
+        - ./kcat/script.sh:/tmp/script.sh:r
+      entrypoint:
+        - /bin/sh -c echo Installing
+      depends_on:
+        - kafka
+
     kafka:
       hostname: kafka
       image: 'bitnami/kafka:3.4.0-debian-11-r20'
