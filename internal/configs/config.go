@@ -3,6 +3,7 @@ package configs
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/v2"
@@ -29,6 +30,7 @@ type Config struct {
 	KAFKA_BATCH_SIZE                           int
 	KAFKA_CONSUMER_DURATION_MS                 int
 	KAFKA_CONSUMER_MAX_CONSECUTIVE_ERROR_COUNT int
+	DEDUP_EXPIRATION                           time.Duration
 }
 
 // TODO: Define default values for kafka config.
